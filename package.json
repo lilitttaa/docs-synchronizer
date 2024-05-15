@@ -1,0 +1,15 @@
+{
+  "name": "docs-sync2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "crossnote": "^0.9.9",
+    "simple-git": "^3.24.0"
+  }
+}
