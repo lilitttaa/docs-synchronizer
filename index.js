@@ -50,20 +50,20 @@ async function uploadMd2Blog(mdDir, mdFileName, blogRootDir) {
     await fs.writeFile(htmlFilePath, html);
 
     // Move the exported html file to the blog directory.
-    const blogHtmlFilePath = path.join(blogRootDir,'posts', mdFileName.replace(".md", ".html"));
+    const blogHtmlFilePath = path.join(blogRootDir, 'posts', mdFileName.replace(".md", ".html"));
     await fs.copyFile(htmlFilePath, blogHtmlFilePath);
 
     // Move all images to the blog directory.
     const blogImageDir = path.join(blogRootDir, "public", "images", mdFileNameWithoutExt);
     await fs.mkdir(blogImageDir, { recursive: true });
-    
+
     // Clear the blogImageDir
     await fs.rmdir(blogImageDir, { recursive: true });
     await fs.mkdir(blogImageDir, { recursive: true });
 
     const files = await fs.readdir(mdDir);
     for (const file of files) {
-        if (file.endsWith(".png")||file.endsWith(".jpg")||file.endsWith(".jpeg")||file.endsWith(".gif")||file.endsWith(".svg")){
+        if (file.endsWith(".png") || file.endsWith(".jpg") || file.endsWith(".jpeg") || file.endsWith(".gif") || file.endsWith(".svg")) {
             await fs.copyFile(path.join(mdDir, file), path.join(blogImageDir, file));
         }
     }
@@ -85,7 +85,7 @@ async function main() {
     const mdRootDirPath = config.mdRootDirPath;
     const blogRootDirPath = config.blogRootDirPath;
 
-    const files = await fs.readdir(mdRootDirPath,{recursive:true});
+    const files = await fs.readdir(mdRootDirPath, { recursive: true });
     const mdFiles = [];
     for (const file of files) {
         const fileName = path.basename(file);
@@ -97,8 +97,8 @@ async function main() {
             });
         }
     }
-    
-    
+
+
     for (const mdFile of mdFiles) {
         const dirPath = path.join(mdRootDirPath, mdFile.dir);
         await uploadMd2Blog(dirPath, mdFile.fileName, blogRootDirPath);
