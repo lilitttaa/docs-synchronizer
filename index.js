@@ -54,14 +54,12 @@ async function uploadMd2Blog(mdDir, mdFileName, dirCollections) {
 
     await fs.mkdir(dirCollections.cachedDirPath, { recursive: true });
     await copyMdToLocalCacheDir(mdDir, mdFileName, dirCollections.cachedDirPath);
-    const meta = await generateMetaInfo(mdFileName, mdDir);
     await exportHtmlFromMarkdown(dirCollections.cachedDirPath, mdFileName);
     await remapHtmlFileImgUrls(htmlFilePath, fileNameWithoutExt);
     await fs.copyFile(htmlFilePath, blogOutputFilePath);
     await createACleanDir(blogImageDirPath);
     await copyImagesToBlog(mdDir, blogImageDirPath);
     await fs.rmdir(dirCollections.cachedDirPath, { recursive: true });
-    return meta;
 }
 
 async function uploadBlog(blogRootDirPath) {
@@ -119,6 +117,12 @@ function getAllPubMdFiles(files) {
     return pubMdFiles;
 }
 
+async function exportMetaInfoFile(metas, filePath) {
+    await fs.writeFile(filePath, JSON.stringify(metas, null, 2));
+}
+
+
+
 async function main() {
     const config = require('./config.json');
     const mdRootDirPath = config.mdRootDirPath;
@@ -136,11 +140,15 @@ async function main() {
     await pullBlog(blogRootDirPath);
 
     const pubMdFiles = getAllPubMdFiles(await fs.readdir(mdRootDirPath, { recursive: true }));
+    let metas = {}
     for (const mdFile of pubMdFiles) {
         console.log("Processing: ", mdFile.fileName);
-        await uploadMd2Blog(path.join(mdRootDirPath, mdFile.dir), mdFile.fileName, dirCollections);
+        const mdDir = path.join(mdRootDirPath, mdFile.dir);
+        await uploadMd2Blog(mdDir, mdFile.fileName, dirCollections);
+        const meta = await generateMetaInfo(mdFile.fileName, mdDir);
+        metas[mdFile.fileName] = meta;
     }
-
+    await exportMetaInfoFile(metas, path.join(dirCollections.blogPostsDirPath, "meta.json"));
     await uploadBlog(blogRootDirPath);
 }
 
