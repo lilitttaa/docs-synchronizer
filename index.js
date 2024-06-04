@@ -44,6 +44,12 @@ async function uploadBlog(blogRootDirPath) {
     await git.push("origin", "master");
 }
 
+async function pullBlog(blogRootDirPath) {
+    console.log("Pulling blog...")
+    const git = require('simple-git')(blogRootDirPath);
+    await git.pull("origin", "master");
+}
+
 async function copyImagesToBlog(mdDir, blogImageDirPath) {
     const files = await fs.readdir(mdDir);
     for (const file of files) {
@@ -90,8 +96,9 @@ async function main() {
     const mdRootDirPath = config.mdRootDirPath;
     const blogRootDirPath = config.blogRootDirPath;
 
-    const pubMdFiles = getAllPubMdFiles(await fs.readdir(mdRootDirPath, { recursive: true }));
+    await pullBlog(blogRootDirPath);
 
+    const pubMdFiles = getAllPubMdFiles(await fs.readdir(mdRootDirPath, { recursive: true }));
     for (const mdFile of pubMdFiles) {
         console.log("Processing: ", mdFile.fileName);
         const dirPath = path.join(mdRootDirPath, mdFile.dir);
