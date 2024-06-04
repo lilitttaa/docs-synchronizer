@@ -17,6 +17,34 @@ async function exportHtmlFromMarkdown(dirPath, fileName) {
     await notebook.getNoteMarkdownEngine(fileName).htmlExport({ offline: false, runAllCodeChunks: true });
 }
 
+async function generateMetaInfo(mdFileName, mdDir) {
+    const mdFilePath = path.join(mdDir, mdFileName);
+    const mdContent = await fs.readFile(mdFilePath, "utf-8");
+    const meta = {};
+    const lines = mdContent.split("\n");
+    let bPushed = false;
+    for (let index = 0; index < lines.length; index++) {
+        const line = lines[index];
+        if (index == 0 && !line.startsWith('---'))
+            break;
+        if (line.startsWith("---")) {
+            bPushed = !bPushed;
+            continue;
+        }
+        if (bPushed) {
+            if (line.trim() === "" || !line.includes(":")) {
+                continue;
+            }
+            const arr = line.split(":");
+            meta[arr[0].trim()] = arr[1].trim();
+        }
+    }
+    const stat = await fs.stat(mdFilePath);
+    meta["created_at"] = stat.birthtime;
+    console.log("Meta: ", meta);
+    return meta;
+}
+
 async function uploadMd2Blog(mdDir, mdFileName, blogRootDir) {
     const currentDirPath = process.cwd();
     const cacheDirPath = path.join(currentDirPath, "cache");
@@ -27,13 +55,14 @@ async function uploadMd2Blog(mdDir, mdFileName, blogRootDir) {
 
     await fs.mkdir(cacheDirPath, { recursive: true });
     await copyMdToLocalCacheDir(mdDir, mdFileName, cacheDirPath);
+    const meta = await generateMetaInfo(mdFileName, mdDir);
     await exportHtmlFromMarkdown(cacheDirPath, mdFileName);
     await remapHtmlFileImgUrls(htmlFilePath, fileNameWithoutExt);
     await fs.copyFile(htmlFilePath, blogOutputFilePath);
     await createACleanDir(blogImageDirPath);
     await copyImagesToBlog(mdDir, blogImageDirPath);
     await fs.rmdir(cacheDirPath, { recursive: true });
-    
+    return meta;
 }
 
 async function uploadBlog(blogRootDirPath) {
