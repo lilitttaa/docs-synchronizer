@@ -146,7 +146,7 @@ async function main() {
         const mdDir = path.join(mdRootDirPath, mdFile.dir);
         await uploadMd2Blog(mdDir, mdFile.fileName, dirCollections);
         const meta = await generateMetaInfo(mdFile.fileName, mdDir);
-        metas[mdFile.fileName] = meta;
+        metas[mdFileName.replace(".md", "")] = meta;
     }
     await exportMetaInfoFile(metas, path.join(dirCollections.blogPostsDirPath, "meta.json"));
     await uploadBlog(blogRootDirPath);
