@@ -133,8 +133,10 @@ async function main() {
         mdRootDirPath: config.mdRootDirPath,
         blogRootDirPath: config.blogRootDirPath,
         cachedDirPath: path.join(process.cwd(), "cache"),
+        rootCoverDirPath: path.join(config.mdRootDirPath,"Covers"),
         blogPostsDirPath: path.join(config.blogRootDirPath, "posts"),
         blogImagesDirPath: path.join(config.blogRootDirPath, "public", "images"),
+        blogCoversImagesDirPath: path.join(config.blogRootDirPath, "public", "images","covers"),
     }
 
     await pullBlog(blogRootDirPath);
@@ -148,6 +150,9 @@ async function main() {
         const meta = await generateMetaInfo(mdFile.fileName, mdDir);
         metas[mdFile.fileName.replace(".md", "")] = meta;
     }
+	await createACleanDir(dirCollections.blogCoversImagesDirPath);
+	await copyImagesToBlog(dirCollections.rootCoverDirPath, dirCollections.blogCoversImagesDirPath);
+	
     await exportMetaInfoFile(metas, path.join(dirCollections.blogPostsDirPath, "meta.json"));
     await uploadBlog(blogRootDirPath);
 }
