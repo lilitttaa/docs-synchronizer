@@ -133,7 +133,7 @@ async function main() {
         mdRootDirPath: config.mdRootDirPath,
         blogRootDirPath: config.blogRootDirPath,
         cachedDirPath: path.join(process.cwd(), "cache"),
-        rootCoverDirPath: path.join(config.mdRootDirPath,"Covers"),
+        rootCoverDirPath: path.join(config.mdRootDirPath,"BlogSync","Covers"),
         blogPostsDirPath: path.join(config.blogRootDirPath, "posts"),
         blogImagesDirPath: path.join(config.blogRootDirPath, "public", "images"),
         blogCoversImagesDirPath: path.join(config.blogRootDirPath, "public", "images","covers"),
