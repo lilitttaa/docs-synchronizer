@@ -58,7 +58,7 @@ async function uploadMd2Blog(mdDir, mdFileName, dirCollections) {
     await remapHtmlFileImgUrls(htmlFilePath, fileNameWithoutExt);
     await fs.copyFile(htmlFilePath, blogOutputFilePath);
     await createACleanDir(blogImageDirPath);
-    await copyImagesToBlog(mdDir, blogImageDirPath);
+    await copyFiles(mdDir, blogImageDirPath);
     await fs.rmdir(dirCollections.cachedDirPath, { recursive: true });
 }
 
@@ -76,11 +76,11 @@ async function pullBlog(blogRootDirPath) {
     await git.pull("origin", "master");
 }
 
-async function copyImagesToBlog(mdDir, blogImageDirPath) {
-    const files = await fs.readdir(mdDir);
+async function copyFiles(sourceDir, targetDir, extChecker) {
+    const files = await fs.readdir(sourceDir);
     for (const file of files) {
-        if (file.endsWith(".png") || file.endsWith(".jpg") || file.endsWith(".jpeg") || file.endsWith(".gif") || file.endsWith(".svg")) {
-            await fs.copyFile(path.join(mdDir, file), path.join(blogImageDirPath, file));
+        if (extChecker(file)) {
+            await fs.copyFile(path.join(sourceDir, file), path.join(targetDir, file));
         }
     }
 }
@@ -121,7 +121,9 @@ async function exportMetaInfoFile(metas, filePath) {
     await fs.writeFile(filePath, JSON.stringify(metas, null, 2));
 }
 
-
+const imgExtChecker = (file) =>{
+	return file.endsWith(".png") || file.endsWith(".jpg") || file.endsWith(".jpeg") || file.endsWith(".gif") || file.endsWith(".svg")
+}
 
 async function main() {
     const config = require('./config.json');
@@ -151,7 +153,7 @@ async function main() {
         metas[mdFile.fileName.replace(".md", "")] = meta;
     }
 	await createACleanDir(dirCollections.blogCoversImagesDirPath);
-	await copyImagesToBlog(dirCollections.rootCoverDirPath, dirCollections.blogCoversImagesDirPath);
+	await copyFiles(dirCollections.rootCoverDirPath, dirCollections.blogCoversImagesDirPath, imgExtChecker);
 	
     await exportMetaInfoFile(metas, path.join(dirCollections.blogPostsDirPath, "meta.json"));
     await uploadBlog(blogRootDirPath);
