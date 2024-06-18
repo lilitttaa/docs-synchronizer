@@ -41,22 +41,20 @@ async function generateMetaInfo(mdFileName, mdDir) {
     }
     const stat = await fs.stat(mdFilePath);
     meta["created_at"] = stat.birthtime;
-    console.log("Meta: ", meta);
     return meta;
 }
 
 async function uploadMd2Blog(mdDir, mdFileName, dirCollections) {
-    console.log("dirCollections",dirCollections)
-    const htmlFilePath = path.join(dirCollections.cachedDirPath, mdFileName.replace(".md", ".html"));
+    const mdFilePath = path.join(dirCollections.cachedDirPath, mdFileName);
     const fileNameWithoutExt = mdFileName.replace(".md", "");
-    const blogOutputFilePath = path.join(dirCollections.blogPostsDirPath, mdFileName.replace(".md", ".html"));
+    const blogOutputFilePath = path.join(dirCollections.blogPostsDirPath, mdFileName);
     const blogImageDirPath = path.join(dirCollections.blogImagesDirPath, fileNameWithoutExt);
 
     await fs.mkdir(dirCollections.cachedDirPath, { recursive: true });
     await copyMdToLocalCacheDir(mdDir, mdFileName, dirCollections.cachedDirPath);
-    await exportHtmlFromMarkdown(dirCollections.cachedDirPath, mdFileName);
-    await remapHtmlFileImgUrls(htmlFilePath, fileNameWithoutExt);
-    await fs.copyFile(htmlFilePath, blogOutputFilePath);
+    // await exportHtmlFromMarkdown(dirCollections.cachedDirPath, mdFileName);
+    // await remapHtmlFileImgUrls(mdFilePath, fileNameWithoutExt);
+    await fs.copyFile(mdFilePath, blogOutputFilePath);
     await createACleanDir(blogImageDirPath);
     await copyFiles(mdDir, blogImageDirPath,imgExtChecker);
     await fs.rmdir(dirCollections.cachedDirPath, { recursive: true });
@@ -129,6 +127,28 @@ const jsonExtChecker = (file)=>{
 	return file.endsWith("json")
 }
 
+async function readCollectionInfo(filePath){
+	const content = await fs.readFile(filePath, "utf-8");
+	return JSON.parse(content);
+}
+
+const checkFileInCollections = (fileName, collectionInfo) => {
+	console.log('collectionInfo',collectionInfo)
+	for(const key in collectionInfo){
+		const collection = collectionInfo[key]
+		console.log('collection',collection)
+		for(const collectionFileName of collection.List){
+			console.log('collectionFileName',collectionFileName)
+			if(fileName === collectionFileName){
+				console.log('checkFileInCollections',fileName,collectionFileName,collection.Name)
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+
 async function main() {
     const config = require('./config.json');
     const mdRootDirPath = config.mdRootDirPath;
@@ -150,13 +170,21 @@ async function main() {
 
     const pubMdFiles = getAllPubMdFiles(await fs.readdir(mdRootDirPath, { recursive: true }));
     let metas = {}
-    for (const mdFile of pubMdFiles) {
+	const collectionInfo = await readCollectionInfo(path.join(dirCollections.blogSyncDirPath,"Collections.json"))
+    let fileNamesNotInCollections = []
+	for (const mdFile of pubMdFiles) {
         console.log("Processing: ", mdFile.fileName);
         const mdDir = path.join(mdRootDirPath, mdFile.dir);
         await uploadMd2Blog(mdDir, mdFile.fileName, dirCollections);
         const meta = await generateMetaInfo(mdFile.fileName, mdDir);
         metas[mdFile.fileName.replace(".md", "")] = meta;
+		if(!checkFileInCollections(mdFile.fileName.replace(".md",""),collectionInfo)){
+			fileNamesNotInCollections.push(mdFile.fileName)
+		}
     }
+	for(const fileName of fileNamesNotInCollections){
+		console.error('file not in any collection',fileName)
+	}
 	await createACleanDir(dirCollections.blogCoversImagesDirPath);
 	await copyFiles(dirCollections.rootCoverDirPath, dirCollections.blogCoversImagesDirPath, imgExtChecker);
 	await copyFiles(dirCollections.blogSyncDirPath,dirCollections.blogPostsDirPath,jsonExtChecker)
