@@ -58,7 +58,7 @@ async function uploadMd2Blog(mdDir, mdFileName, dirCollections) {
     await remapHtmlFileImgUrls(htmlFilePath, fileNameWithoutExt);
     await fs.copyFile(htmlFilePath, blogOutputFilePath);
     await createACleanDir(blogImageDirPath);
-    await copyFiles(mdDir, blogImageDirPath);
+    await copyFiles(mdDir, blogImageDirPath,imgExtChecker);
     await fs.rmdir(dirCollections.cachedDirPath, { recursive: true });
 }
 
@@ -125,6 +125,10 @@ const imgExtChecker = (file) =>{
 	return file.endsWith(".png") || file.endsWith(".jpg") || file.endsWith(".jpeg") || file.endsWith(".gif") || file.endsWith(".svg")
 }
 
+const jsonExtChecker = (file)=>{
+	return file.endsWith("json")
+}
+
 async function main() {
     const config = require('./config.json');
     const mdRootDirPath = config.mdRootDirPath;
@@ -136,6 +140,7 @@ async function main() {
         blogRootDirPath: config.blogRootDirPath,
         cachedDirPath: path.join(process.cwd(), "cache"),
         rootCoverDirPath: path.join(config.mdRootDirPath,"BlogSync","Covers"),
+        blogSyncDirPath: path.join(config.mdRootDirPath,"BlogSync"),
         blogPostsDirPath: path.join(config.blogRootDirPath, "posts"),
         blogImagesDirPath: path.join(config.blogRootDirPath, "public", "images"),
         blogCoversImagesDirPath: path.join(config.blogRootDirPath, "public", "images","covers"),
@@ -154,7 +159,7 @@ async function main() {
     }
 	await createACleanDir(dirCollections.blogCoversImagesDirPath);
 	await copyFiles(dirCollections.rootCoverDirPath, dirCollections.blogCoversImagesDirPath, imgExtChecker);
-	
+	await copyFiles(dirCollections.blogSyncDirPath,dirCollections.blogPostsDirPath,jsonExtChecker)
     await exportMetaInfoFile(metas, path.join(dirCollections.blogPostsDirPath, "meta.json"));
     await uploadBlog(blogRootDirPath);
 }
