@@ -65,13 +65,13 @@ async function uploadBlog(blogRootDirPath) {
     const git = require('simple-git')(blogRootDirPath);
     await git.add(".");
     await git.commit("Update blog");
-    await git.push("origin", "master");
+    await git.push("origin", "main");
 }
 
 async function pullBlog(blogRootDirPath) {
     console.log("Pulling blog...")
     const git = require('simple-git')(blogRootDirPath);
-    await git.pull("origin", "master");
+    await git.pull("origin", "main");
 }
 
 async function copyFiles(sourceDir, targetDir, extChecker) {
