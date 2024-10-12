@@ -53,7 +53,7 @@ async function uploadMd2Blog(mdDir, mdFileName, dirCollections) {
     await fs.mkdir(dirCollections.cachedDirPath, { recursive: true });
     await copyMdToLocalCacheDir(mdDir, mdFileName, dirCollections.cachedDirPath);
     // await exportHtmlFromMarkdown(dirCollections.cachedDirPath, mdFileName);
-    // await remapHtmlFileImgUrls(mdFilePath, fileNameWithoutExt);
+    await remapMdFileImgUrls(mdFilePath, fileNameWithoutExt);
     await fs.copyFile(mdFilePath, blogOutputFilePath);
     await createACleanDir(blogImageDirPath);
     await copyFiles(mdDir, blogImageDirPath,imgExtChecker);
@@ -89,10 +89,12 @@ async function createACleanDir(blogImageDirPath) {
     await fs.mkdir(blogImageDirPath, { recursive: true });
 }
 
-async function remapHtmlFileImgUrls(htmlFilePath, fileNameWithoutExt) {
-    let html = await fs.readFile(htmlFilePath, "utf-8");
-    html = html.replace(/<img src="(?<url>[^"]+)"/g, `<img src="/images/${fileNameWithoutExt}/$<url>"`);
-    await fs.writeFile(htmlFilePath, html);
+async function remapMdFileImgUrls(mdFilePath, fileNameWithoutExt) {
+    let md = await fs.readFile(mdFilePath, "utf-8");
+    // md = md.replace(/<img src="(?<url>[^"]+)"/g, `<img src="/images/${fileNameWithoutExt}/$<url>"`);
+	// 把所有![alt text](image-9.png)形式的图片链接替换为![alt text](/images/fileNameWithoutExt/image-9.png)
+	md = md.replace(/!\[.*\]\((.*)\)/g, `![$1](/images/${fileNameWithoutExt}/$1)`);
+    await fs.writeFile(mdFilePath, md);
 }
 
 async function copyMdToLocalCacheDir(mdDir, mdFileName, cacheDir) {
@@ -161,7 +163,7 @@ async function main() {
         cachedDirPath: path.join(process.cwd(), "cache"),
         rootCoverDirPath: path.join(config.mdRootDirPath,"BlogSync","Covers"),
         blogSyncDirPath: path.join(config.mdRootDirPath,"BlogSync"),
-        blogPostsDirPath: path.join(config.blogRootDirPath, "posts"),
+        blogPostsDirPath: path.join(config.blogRootDirPath, "source","_posts"),
         blogImagesDirPath: path.join(config.blogRootDirPath, "public", "images"),
         blogCoversImagesDirPath: path.join(config.blogRootDirPath, "public", "images","covers"),
     }
@@ -172,24 +174,38 @@ async function main() {
     let metas = {}
 	const collectionInfo = await readCollectionInfo(path.join(dirCollections.blogSyncDirPath,"Collections.json"))
     let fileNamesNotInCollections = []
+	let filesDonotHaveTitle = [] 
+
+	await createACleanDir(dirCollections.blogPostsDirPath);
+	await createACleanDir(dirCollections.blogImagesDirPath);
+
 	for (const mdFile of pubMdFiles) {
         console.log("Processing: ", mdFile.fileName);
         const mdDir = path.join(mdRootDirPath, mdFile.dir);
-        await uploadMd2Blog(mdDir, mdFile.fileName, dirCollections);
         const meta = await generateMetaInfo(mdFile.fileName, mdDir);
         metas[mdFile.fileName.replace(".md", "")] = meta;
 		if(!checkFileInCollections(mdFile.fileName.replace(".md",""),collectionInfo)){
 			fileNamesNotInCollections.push(mdFile.fileName)
 		}
+		else{
+			await uploadMd2Blog(mdDir, mdFile.fileName, dirCollections);
+		}
+		if(!meta.title){
+			filesDonotHaveTitle.push(mdFile.fileName)
+		}
     }
 	for(const fileName of fileNamesNotInCollections){
 		console.error('file not in any collection',fileName)
+	}
+	for (const fileName of filesDonotHaveTitle){
+		console.error('file do not have title',fileName)
 	}
 	await createACleanDir(dirCollections.blogCoversImagesDirPath);
 	await copyFiles(dirCollections.rootCoverDirPath, dirCollections.blogCoversImagesDirPath, imgExtChecker);
 	await copyFiles(dirCollections.blogSyncDirPath,dirCollections.blogPostsDirPath,jsonExtChecker)
     await exportMetaInfoFile(metas, path.join(dirCollections.blogPostsDirPath, "meta.json"));
     await uploadBlog(blogRootDirPath);
+	await new Promise((resolve) => setTimeout(resolve, 5000000));
 }
 
 main();
